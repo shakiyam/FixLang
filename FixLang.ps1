@@ -1,6 +1,6 @@
 Set-StrictMode -Version Latest
 
-$version = "2021-04-09"
+$version = "2021-06-03"
 Write-Output "FixLang - built $version by Shinichi Akiyama"
 
 function Write-Message ([string]$message) {
@@ -23,18 +23,20 @@ function backupFile ($path) {
 }
 
 function ChangeLangID ($textRange) {
-    $text = $textRange.Text -replace "[\x0b\x0d]", "`n"
-    $languageID = $textRange.LanguageID
-    $textRange.LanguageID = [Microsoft.Office.Core.MsoLanguageID]::msoLanguageIDJapanese
-    if (($text -ne "") -and ($null -ne $languageID) -and ($textRange.LanguageID -ne $languageID)) {
-        Write-Message "[$text] LanguageID has been changed from $languageID to Japanese"
+    foreach ($run in $textRange.Runs()) {
+        $text = $run.Text -replace "[\x0b\x0d]", "`n"
+        $languageID = $run.LanguageID
+        $run.LanguageID = [Microsoft.Office.Core.MsoLanguageID]::msoLanguageIDJapanese
+        if (($text -ne "") -and ($null -ne $languageID) -and ($run.LanguageID -ne $languageID)) {
+            Write-Message "[$text] LanguageID has been changed from $languageID to Japanese"
+        }
     }
 }
 
 function treatShape ($shape) {
     if ($shape.HasTextFrame -eq [Microsoft.Office.Core.MsoTriState]::msoTrue) {
-        foreach ($textRange in $shape.TextFrame.TextRange) {
-            ChangeLangID $textRange
+        if ($shape.TextFrame.HasText) {
+            ChangeLangID $shape.TextFrame.TextRange
         }
     }
     elseif ($shape.HasTable -eq [Microsoft.Office.Core.MsoTriState]::msoTrue) {
